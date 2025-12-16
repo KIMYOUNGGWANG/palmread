@@ -57,6 +57,7 @@ export default function Home() {
   const [view, setView] = useState<ViewState>("onboarding")
   const [imageData, setImageData] = useState<string | null>(null)
   const [birthYear, setBirthYear] = useState<number | null>(null)
+  const [lang, setLang] = useState<"ko" | "en">("ko")
   const [analysisResult, setAnalysisResult] = useState<PalmReadingResult | null>(null)
   const apiCompleteRef = useRef(false)
   const animationCompleteRef = useRef(false)
@@ -86,7 +87,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageData: optimizedImage,
-          birthYear: birthYear
+          birthYear: birthYear,
+          lang: lang
         }),
       })
 
@@ -140,8 +142,15 @@ export default function Home() {
 
   return (
     <main className="relative w-full h-screen bg-background text-foreground overflow-hidden max-w-md mx-auto shadow-2xl">
-      <header className="absolute top-0 left-0 w-full z-50 p-4 flex justify-between items-center pointer-events-none">
-        <div className="text-xl font-bold tracking-tighter text-foreground opacity-0">PalmRead</div>
+      <header className="absolute top-0 left-0 w-full z-50 p-4 flex justify-between items-center">
+        {/* Language Toggle */}
+        <button
+          onClick={() => setLang(lang === "ko" ? "en" : "ko")}
+          className="text-xs bg-white/90 backdrop-blur px-3 py-1.5 rounded-full border border-surface-border flex items-center gap-1.5 shadow-sm hover:bg-white transition-colors"
+        >
+          {lang === "ko" ? "🇰🇷 한국어" : "🇺🇸 English"}
+        </button>
+
         {view !== "onboarding" && view !== "birth" && (
           <div className="text-xs bg-white/80 backdrop-blur px-3 py-1 rounded-full border border-surface-border flex items-center gap-1 animate-in fade-in text-muted shadow-sm">
             <span>🔒</span> Privacy First
