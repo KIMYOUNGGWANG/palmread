@@ -39,6 +39,7 @@ export interface PalmReadingResult {
     year: number
     score: number
     event: string
+    trend?: "up" | "down"
   }[]
   lucky: {
     color: string

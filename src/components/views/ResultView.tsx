@@ -217,11 +217,22 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                             <TrendingUp className="w-5 h-5 text-primary-foreground" />
                             <h3 className="font-bold text-lg">5년 운세 그래프</h3>
                         </div>
-                        <div className="flex items-end justify-between gap-2 h-32 mt-4">
+                        <div className="flex items-end justify-between gap-2 h-36 mt-4">
                             {timeline.map((item, i) => (
-                                <div key={item.year} className="flex-1 flex flex-col items-center gap-2">
+                                <div key={item.year} className="flex-1 flex flex-col items-center gap-1">
+                                    {/* Trend Arrow */}
+                                    {item.trend && (
+                                        <motion.span
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 3 + i * 0.1 }}
+                                            className={`text-sm font-bold ${item.trend === "up" ? "text-green-500" : "text-red-400"}`}
+                                        >
+                                            {item.trend === "up" ? "↑" : "↓"}
+                                        </motion.span>
+                                    )}
                                     <motion.div
-                                        className="w-full rounded-t-lg"
+                                        className="w-full rounded-t-lg relative"
                                         style={{
                                             backgroundColor: item.score >= 80 ? "#B6E63A" : item.score >= 60 ? "#FFD93D" : "#FF6B6B",
                                             height: `${item.score}%`
@@ -229,10 +240,15 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                                         initial={{ height: 0 }}
                                         animate={{ height: `${item.score}%` }}
                                         transition={{ duration: 0.8, delay: 2.5 + i * 0.1 }}
-                                    />
+                                    >
+                                        {/* Score label on bar */}
+                                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-muted">
+                                            {item.score}
+                                        </span>
+                                    </motion.div>
                                     <div className="text-center">
                                         <p className="text-xs font-bold">{item.year}</p>
-                                        <p className="text-[10px] text-muted truncate w-12">{item.event}</p>
+                                        <p className="text-[10px] text-muted truncate w-14">{item.event}</p>
                                     </div>
                                 </div>
                             ))}
