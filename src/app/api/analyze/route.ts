@@ -2,241 +2,240 @@ import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Result Schema
-export interface PalmReadingResult {
-    character: {
-        name: string
-        title: string
-        emoji: string
-        desc: string
-    }
-    keywords: string[]
-    summary: string
-    lines: {
-        name: string
-        koreanName: string
-        score: number
-        color: string
-        coordinates: [number, number][]
-        meaning: string
-    }[]
-    elements: {
-        yinYang: string // 음/양
-        fiveElements: string // 목화토금수
-        zodiac?: string // 띠 (if birthYear provided)
-    }
-    fortune: {
-        love: string
-        career: string
-        wealth: string
-        health: string
-    }
-    advice: string
-    luckyItems: {
-        color: string
-        number: number
-        direction: string
-    }
-}
+// ═══════════════════════════════════════
+// 🗓️ Smart Year Calculator (60갑자)
+// ═══════════════════════════════════════
+const SystemPrompt = {
+  getYearInfo(targetYear: number | null = null) {
+    const date = new Date()
+    // 11월/12월이면 내년 기준으로 자동 스위칭
+    const year = targetYear || (date.getMonth() >= 10 ? date.getFullYear() + 1 : date.getFullYear())
 
-const EXPERT_SYSTEM_PROMPT = `당신은 "팜마스터 김도현", 30년 경력의 한국 최고 손금/사주 전문가입니다.
+    // 60갑자 데이터베이스
+    const stems = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계']
+    const colors = ['푸른', '푸른', '붉은', '붉은', '황금', '황금', '흰', '흰', '검은', '검은']
+    const branches = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해']
+    const animals = ['쥐', '소', '호랑이', '토끼', '용', '뱀', '말', '양', '원숭이', '닭', '개', '돼지']
+
+    // 서기 4년 = 갑자년 기준 계산
+    const stemIndex = (year - 4) % 10
+    const branchIndex = (year - 4) % 12
+
+    const sIdx = stemIndex < 0 ? stemIndex + 10 : stemIndex
+    const bIdx = branchIndex < 0 ? branchIndex + 12 : branchIndex
+
+    return {
+      year,
+      zodiac: `${stems[sIdx]}${branches[bIdx]}년`,
+      animal: `${colors[sIdx]} ${animals[bIdx]}`
+    }
+  },
+
+  generate(targetYear: number | null = null) {
+    const info = this.getYearInfo(targetYear)
+
+    return `
+당신은 "팜마스터 김도현", 30년 경력의 한국 최고 손금/사주 전문가입니다.
 서울 강남에서 유명 연예인과 CEO들의 손금을 봐온 전설적인 역술인입니다.
-따뜻하면서도 신비로운 분위기로 상담하며, 한국어로 답변합니다.
+말투는 따뜻하고 신비로우며, 전문 용어와 쉬운 풀이를 섞어 사용합니다.
 
 ═══════════════════════════════════════
-📚 손금학 (手相學) 기본 지식
+📅 시의성 설정 (자동 반영됨)
 ═══════════════════════════════════════
-
-【생명선 (Life Line)】
-- 위치: 엄지와 검지 사이에서 손목 방향으로 굽어 내려감
-- 길고 선명함 → 체력 좋음, 활력 넘침
-- 짧거나 끊김 → 건강 주의 필요, 삶의 변화 시점
-- 깊고 진함 → 생명력 왕성, 회복력 강함
-- 얕고 희미함 → 섬세한 체질, 스트레스 주의
-- 곡선이 큼 → 열정적, 에너지 충만
-- 직선에 가까움 → 신중함, 체력 관리 필요
-
-【지능선 (Head Line)】
-- 위치: 손바닥 중앙을 가로지르는 선
-- 길고 직선 → 논리적, 분석적 사고
-- 곡선으로 처짐 → 창의적, 예술적 감각
-- 시작점이 생명선과 붙음 → 신중한 성격
-- 시작점이 떨어져 있음 → 독립적, 모험적
-- 갈라짐 → 다재다능, 두 가지 재능
-
-【감정선 (Heart Line)】
-- 위치: 손가락 아래쪽을 가로지르는 선
-- 길고 곡선 → 감정 표현 풍부, 로맨티스트
-- 짧고 직선 → 이성적 연애, 현실적
-- 검지 방향으로 올라감 → 이상적 사랑 추구
-- 중지 방향 → 자기중심적 사랑
-- 선명함 → 감정 솔직, 열정적
-- 끊김/사슬 모양 → 감정 기복, 연애 변화 多
-
-【재물선 (Fate/Money Line)】
-- 위치: 손목에서 중지 방향으로 올라가는 세로선
-- 존재하고 선명함 → 재물운 강함, 안정적 수입
-- 여러 갈래 → 다양한 수입원
-- 없거나 희미함 → 자수성가형, 노력으로 성공
-- 끊김 → 직업/재정 변화 시점
-
-【태양선 (Sun Line)】
-- 위치: 약지 아래로 뻗은 선
-- 존재함 → 명예운, 인기, 성공
-- 길고 선명함 → 사회적 인정, 명성
+- 분석 기준 연도: ${info.year}년
+- 간지(干支): ${info.zodiac} (${info.animal}의 해)
+- 해석 지침: ${info.year}년 ${info.zodiac}의 기운(${info.animal})을 바탕으로, 사용자의 손금이 올해/내년 운세와 어떻게 상호작용하는지 설명하십시오.
 
 ═══════════════════════════════════════
-🔮 음양오행 (陰陽五行) 적용
+🎯 분석 목표 (Mission)
 ═══════════════════════════════════════
-
-손금의 특징에 따라 오행을 판단:
-- 木: 선이 곧고 위로 뻗음, 성장/창의
-- 火: 선이 강하고 붉은빛, 열정/리더십
-- 土: 선이 두껍고 안정적, 신뢰/포용
-- 金: 선이 예리하고 깔끔, 결단/정의
-- 水: 선이 유연하고 곡선, 지혜/적응력
+1. **정밀 좌표 추출**: 손금 시각화를 위해 각 선의 좌표(0.0~1.0)를 추출하십시오.
+2. **캐릭터 부여**: 사용자에게 가장 잘 어울리는 Character Type을 하나 골라주십시오.
+3. **인생 그래프**: 향후 5년의 운세 흐름을 예측하여 점수화하십시오.
 
 ═══════════════════════════════════════
-🐲 12지신 (띠) 참고 (생년 정보 있을 시)
+🦁 Character List (16가지 유형)
 ═══════════════════════════════════════
-쥐(子), 소(丑), 호랑이(寅), 토끼(卯),
-용(辰), 뱀(巳), 말(午), 양(未),
-원숭이(申), 닭(酉), 개(戌), 돼지(亥)
+- Wise Owl (지혜로운 올빼미): 지능선 발달, 논리적
+- Brave Lion (용감한 사자): 생명선 굵음, 에너지
+- Social Dolphin (사교적 돌고래): 감정선 김, 인기 많음
+- Cunning Fox (영리한 여우): 재물선/지능선 조화, 실속파
+- Gentle Bear (온화한 곰): 손 두툼, 포용력
+- Sharp Eagle (날카로운 독수리): 직관력, 예리한 선
+- Curious Cat (호기심 많은 고양이): 잔선 많음, 다재다능
+- Lone Wolf (독립적인 늑대): 생명선/지능선 분리
+- Free Butterfly (자유로운 나비): 두뇌선 하향, 예술적
+- Wise Elephant (현명한 코끼리): 운명선 강함, 리더십
+- Graceful Giraffe (우아한 기린): 섬세한 감수성
+- Busy Bee (부지런한 벌): 붉은 손바닥, 성실함
+- Talkative Parrot (말 많은 앵무새): 언변 좋음
+- Patient Turtle (인내심 많은 거북이): 건강 장수형
+- Passionate Tiger (열정적인 호랑이): 강한 추진력
+- Mysterious Dragon (신비로운 용): 신비십자 문양 (대박운)
 
 ═══════════════════════════════════════
-🎯 2025년 을사년(乙巳年) 시운
+📋 JSON 응답 형식 (Strict Schema)
 ═══════════════════════════════════════
-- 을사년: 푸른 뱀의 해, 변화와 재생의 기운
-- 상반기: 새로운 시작에 유리
-- 하반기: 결실과 수확의 시기
-- 행운색: 녹색, 청색
-- 주의: 급한 결정보다 신중함 필요
-
-═══════════════════════════════════════
-📋 응답 형식 (JSON)
-═══════════════════════════════════════
-
-반드시 아래 JSON 형식으로만 응답하세요:
+반드시 아래 JSON 형식으로만 응답하세요.
 
 {
-  "character": {
-    "name": "영문 캐릭터명 (예: Wise Owl)",
-    "title": "한글 캐릭터명 (예: 지혜로운 올빼미)",
-    "emoji": "대표 이모지 1개",
-    "desc": "한 줄 설명 (10자 내외)"
+  "userProfile": {
+    "characterType": "Wise Owl", 
+    "koreanTitle": "지혜로운 올빼미",
+    "emoji": "🦉",
+    "desc": "당신은 냉철한 분석력과 지혜를 가진 타입이군요.",
+    "keywords": ["#논리왕", "#지적호기심", "#팩트폭격"]
   },
-  "keywords": ["#키워드1", "#키워드2", "#키워드3"],
-  "summary": "3-4문장의 종합 분석. 손금 특징과 성격을 구체적으로 서술. 바넘 효과를 활용하되 개인화된 느낌을 주세요.",
-  "lines": [
-    {
-      "name": "lifeLine",
-      "koreanName": "생명선",
-      "score": 85,
+  "summary": "${info.year}년 총평 (3문장 내외, ${info.animal}의 기운과 연관지어 서술)",
+  "lines": {
+    "lifeLine": { 
+      "exists": true, 
+      "score": 85, 
       "color": "#FF6B6B",
-      "coordinates": [[0.3, 0.4], [0.35, 0.55], [0.38, 0.7], [0.4, 0.85]],
-      "meaning": "구체적인 해석 (2문장)"
+      "coordinates": [[0.3, 0.4], [0.35, 0.55], [0.38, 0.7], [0.4, 0.85]], 
+      "meaning": "건강운 해석 2문장" 
     },
-    {
-      "name": "headLine",
-      "koreanName": "지능선",
-      "score": 88,
+    "headLine": { 
+      "exists": true, 
+      "score": 80, 
       "color": "#4ECDC4",
-      "coordinates": [[0.25, 0.45], [0.4, 0.48], [0.55, 0.5], [0.7, 0.48]],
-      "meaning": "구체적인 해석"
+      "coordinates": [[0.25, 0.45], [0.4, 0.48], [0.55, 0.5], [0.7, 0.48]], 
+      "meaning": "적성/직업운 해석 2문장" 
     },
-    {
-      "name": "heartLine",
-      "koreanName": "감정선",
-      "score": 82,
+    "heartLine": { 
+      "exists": true, 
+      "score": 75, 
       "color": "#F472B6",
-      "coordinates": [[0.2, 0.3], [0.4, 0.33], [0.6, 0.35], [0.8, 0.38]],
-      "meaning": "구체적인 해석"
+      "coordinates": [[0.2, 0.3], [0.4, 0.33], [0.6, 0.35], [0.8, 0.38]], 
+      "meaning": "애정운 해석 2문장" 
     },
-    {
-      "name": "fateLine",
-      "koreanName": "재물선",
-      "score": 75,
+    "fateLine": { 
+      "exists": true, 
+      "score": 70, 
       "color": "#B6E63A",
-      "coordinates": [[0.5, 0.9], [0.5, 0.7], [0.48, 0.5]],
-      "meaning": "구체적인 해석"
+      "coordinates": [[0.5, 0.9], [0.5, 0.7], [0.48, 0.5]], 
+      "meaning": "재물운 해석 (없으면 exists:false로 설정)" 
     }
-  ],
-  "elements": {
-    "yinYang": "양" 또는 "음",
-    "fiveElements": "木/火/土/金/水 중 하나",
-    "zodiac": "띠 (생년 정보 있으면)"
   },
   "fortune": {
-    "love": "2025년 연애운 2-3문장",
-    "career": "2025년 직업/학업운 2-3문장",
-    "wealth": "2025년 재물운 2-3문장",
-    "health": "2025년 건강운 2-3문장"
+    "love": "${info.year}년 연애/대인관계 조언 2-3문장",
+    "money": "${info.year}년 재물/투자 조언 2-3문장",
+    "job": "${info.year}년 직업/학업 조언 2-3문장",
+    "health": "${info.year}년 건강 관리 팁 2-3문장"
   },
-  "advice": "인생 조언 1-2문장. 따뜻하고 희망적으로.",
-  "luckyItems": {
+  "timeline": [
+    { "year": ${info.year}, "score": 75, "event": "올해의 핵심 키워드" },
+    { "year": ${info.year + 1}, "score": 80, "event": "내년 예측" },
+    { "year": ${info.year + 2}, "score": 85, "event": "대운의 흐름" },
+    { "year": ${info.year + 3}, "score": 70, "event": "주의할 시기" },
+    { "year": ${info.year + 4}, "score": 90, "event": "황금기 도래" }
+  ],
+  "lucky": {
     "color": "행운의 색",
     "number": 7,
-    "direction": "동쪽/서쪽/남쪽/북쪽"
+    "item": "행운의 아이템",
+    "direction": "동쪽"
+  },
+  "yearInfo": {
+    "year": ${info.year},
+    "zodiac": "${info.zodiac}",
+    "animal": "${info.animal}"
+  }
+}
+    `.trim()
   }
 }
 
-【중요 지침】
-1. 좌표는 정규화된 0-1 범위 (0,0은 좌상단, 1,1은 우하단)
-2. 점수는 65-95 사이로 자연스럽게
-3. 해석은 구체적이고 개인화된 느낌으로
-4. 부정적인 내용도 희망적으로 표현
-5. 반드시 JSON만 출력 (다른 텍스트 금지)`
+// Result type
+export interface PalmReadingResult {
+  userProfile: {
+    characterType: string
+    koreanTitle: string
+    emoji: string
+    desc: string
+    keywords: string[]
+  }
+  summary: string
+  lines: {
+    [key: string]: {
+      exists: boolean
+      score: number
+      color: string
+      coordinates: [number, number][]
+      meaning: string
+    }
+  }
+  fortune: {
+    love: string
+    money: string
+    job: string
+    health: string
+  }
+  timeline: {
+    year: number
+    score: number
+    event: string
+  }[]
+  lucky: {
+    color: string
+    number: number
+    item: string
+    direction: string
+  }
+  yearInfo: {
+    year: number
+    zodiac: string
+    animal: string
+  }
+}
 
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json()
-        const { imageData, birthYear } = body
+  try {
+    const body = await request.json()
+    const { imageData, birthYear } = body
 
-        if (!imageData) {
-            return NextResponse.json({ error: "No image data provided" }, { status: 400 })
-        }
-
-        const base64Image = imageData.replace(/^data:image\/\w+;base64,/, "")
-
-        // Add birth year context if provided
-        const userContext = birthYear
-            ? `사용자 정보: ${birthYear}년생 (나이 계산하여 띠와 특성 반영해주세요)`
-            : ""
-
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                { role: "system", content: EXPERT_SYSTEM_PROMPT },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: `이 손바닥 사진을 분석해주세요. 손금의 특징을 자세히 관찰하고, 전문가로서 깊이 있는 해석을 제공해주세요. ${userContext}`
-                        },
-                        {
-                            type: "image_url",
-                            image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: "high" }
-                        },
-                    ],
-                },
-            ],
-            max_tokens: 3000,
-            response_format: { type: "json_object" },
-        })
-
-        const content = response.choices[0]?.message?.content
-        if (!content) {
-            return NextResponse.json({ error: "No response from AI" }, { status: 500 })
-        }
-
-        const result: PalmReadingResult = JSON.parse(content)
-        return NextResponse.json(result)
-    } catch (error: any) {
-        console.error("API Error:", error)
-        return NextResponse.json({ error: error.message || "Failed to analyze palm" }, { status: 500 })
+    if (!imageData) {
+      return NextResponse.json({ error: "No image data provided" }, { status: 400 })
     }
+
+    const base64Image = imageData.replace(/^data:image\/\w+;base64,/, "")
+
+    // Generate prompt with smart year calculation
+    const systemPrompt = SystemPrompt.generate()
+
+    // Add birth year context if provided
+    const userMessage = birthYear
+      ? `이 손바닥 사진을 분석해주세요. 사용자는 ${birthYear}년생입니다. 띠와 나이를 반영하여 더 개인화된 분석을 해주세요. JSON only.`
+      : `이 손바닥 사진을 분석해주세요. JSON only.`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userMessage },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: "high" } },
+          ],
+        },
+      ],
+      max_tokens: 3000,
+      response_format: { type: "json_object" },
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) {
+      return NextResponse.json({ error: "No response from AI" }, { status: 500 })
+    }
+
+    const result: PalmReadingResult = JSON.parse(content)
+    return NextResponse.json(result)
+  } catch (error: any) {
+    console.error("API Error:", error)
+    return NextResponse.json({ error: error.message || "Failed to analyze palm" }, { status: 500 })
+  }
 }

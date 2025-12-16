@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Share2, ThumbsUp, ThumbsDown, Meh, Lock, Sparkles, Download, ArrowRight, Eye, Heart, Briefcase, Coins, Activity, Compass } from "lucide-react"
+import { Share2, ThumbsUp, ThumbsDown, Meh, Lock, Sparkles, Download, ArrowRight, Eye, Heart, Briefcase, Coins, Activity, Compass, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PalmReadingResult } from "@/app/page"
 import PalmVisualizer from "@/components/ui/PalmVisualizer"
@@ -12,13 +12,32 @@ interface ResultViewProps {
     result: PalmReadingResult
 }
 
+const LINE_KOREAN_NAMES: Record<string, string> = {
+    lifeLine: "생명선",
+    headLine: "지능선",
+    heartLine: "감정선",
+    fateLine: "재물선"
+}
+
 export default function ResultView({ imageData, result }: ResultViewProps) {
     const [showViralCard, setShowViralCard] = useState(false)
     const [viralImage, setViralImage] = useState<string | null>(null)
     const [feedback, setFeedback] = useState<"up" | "down" | "meh" | null>(null)
     const [showVisualization, setShowVisualization] = useState(true)
 
-    const { character, keywords, summary, lines, advice, elements, fortune, luckyItems } = result
+    const { userProfile, summary, lines, fortune, timeline, lucky, yearInfo } = result
+
+    // Convert lines object to array for PalmVisualizer
+    const linesArray = Object.entries(lines)
+        .filter(([_, data]) => data.exists)
+        .map(([name, data]) => ({
+            name,
+            koreanName: LINE_KOREAN_NAMES[name] || name,
+            score: data.score,
+            color: data.color,
+            coordinates: data.coordinates,
+            meaning: data.meaning
+        }))
 
     const generateViralCard = async () => {
         const canvas = document.createElement("canvas")
@@ -27,67 +46,94 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
-        ctx.fillStyle = "#E6E7E3"
+        // Background gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, 1920)
+        grad.addColorStop(0, "#E6E7E3")
+        grad.addColorStop(1, "#D4D5D1")
+        ctx.fillStyle = grad
         ctx.fillRect(0, 0, 1080, 1920)
 
+        // Card
         ctx.fillStyle = "#FFFFFF"
-        ctx.shadowColor = "rgba(0,0,0,0.1)"
-        ctx.shadowBlur = 40
-        ctx.shadowOffsetY = 20
+        ctx.shadowColor = "rgba(0,0,0,0.12)"
+        ctx.shadowBlur = 50
+        ctx.shadowOffsetY = 25
         ctx.beginPath()
-        ctx.roundRect(100, 200, 880, 1400, 60)
+        ctx.roundRect(80, 180, 920, 1500, 60)
         ctx.fill()
         ctx.shadowColor = "transparent"
 
-        ctx.font = "200px sans-serif"
-        ctx.textAlign = "center"
-        ctx.textBaseline = "middle"
-        ctx.fillText(character.emoji, 540, 450)
-
+        // Year badge
+        ctx.fillStyle = "#B6E63A"
+        ctx.beginPath()
+        ctx.roundRect(390, 230, 300, 50, 25)
+        ctx.fill()
         ctx.fillStyle = "#1A1A1A"
-        ctx.font = "bold 70px sans-serif"
-        ctx.fillText(character.title, 540, 680)
+        ctx.font = "bold 24px sans-serif"
+        ctx.textAlign = "center"
+        ctx.fillText(`${yearInfo?.zodiac || "2025년"} 운세`, 540, 265)
 
-        ctx.font = "45px sans-serif"
-        ctx.fillStyle = "#5F5F5F"
-        ctx.fillText(character.desc, 540, 760)
+        // Emoji
+        ctx.font = "180px sans-serif"
+        ctx.textBaseline = "middle"
+        ctx.fillText(userProfile.emoji, 540, 480)
 
-        // Elements badge
+        // Character name
+        ctx.fillStyle = "#1A1A1A"
+        ctx.font = "bold 65px sans-serif"
+        ctx.fillText(userProfile.koreanTitle, 540, 680)
+
+        // Description
+        ctx.font = "40px sans-serif"
+        ctx.fillStyle = "#666666"
+        ctx.fillText(userProfile.desc.slice(0, 20), 540, 760)
+
+        // Keywords
         ctx.font = "bold 35px sans-serif"
         ctx.fillStyle = "#B6E63A"
-        ctx.fillText(`${elements?.yinYang || "양"} · ${elements?.fiveElements || "水"}`, 540, 850)
+        ctx.fillText(userProfile.keywords.join("  "), 540, 880)
 
-        ctx.font = "bold 40px sans-serif"
-        ctx.fillStyle = "#B6E63A"
-        ctx.fillText(keywords.join("  "), 540, 950)
+        // Timeline mini-graph
+        const graphStartY = 1000
+        const graphHeight = 200
+        const graphWidth = 700
+        const graphStartX = (1080 - graphWidth) / 2
 
-        // Summary
-        ctx.font = "35px sans-serif"
-        ctx.fillStyle = "#1A1A1A"
-        const words = summary.split(" ")
-        let line = ""
-        let y = 1100
-        for (let n = 0; n < words.length; n++) {
-            const testLine = line + words[n] + " "
-            const metrics = ctx.measureText(testLine)
-            if (metrics.width > 680 && n > 0) {
-                ctx.fillText(line, 540, y)
-                line = words[n] + " "
-                y += 55
-            } else {
-                line = testLine
-            }
+        ctx.strokeStyle = "#E0E0E0"
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(graphStartX, graphStartY + graphHeight)
+        ctx.lineTo(graphStartX + graphWidth, graphStartY + graphHeight)
+        ctx.stroke()
+
+        // Draw timeline bars
+        if (timeline && timeline.length > 0) {
+            const barWidth = graphWidth / timeline.length - 20
+            timeline.forEach((item, i) => {
+                const barHeight = (item.score / 100) * graphHeight
+                const x = graphStartX + i * (barWidth + 20) + 10
+                const y = graphStartY + graphHeight - barHeight
+
+                ctx.fillStyle = item.score >= 80 ? "#B6E63A" : item.score >= 60 ? "#FFD93D" : "#FF6B6B"
+                ctx.beginPath()
+                ctx.roundRect(x, y, barWidth, barHeight, 8)
+                ctx.fill()
+
+                ctx.fillStyle = "#888888"
+                ctx.font = "22px sans-serif"
+                ctx.fillText(`${item.year}`, x + barWidth / 2, graphStartY + graphHeight + 30)
+            })
         }
-        ctx.fillText(line, 540, y)
 
-        // Lucky Items
-        ctx.font = "30px sans-serif"
+        // Lucky items
         ctx.fillStyle = "#888888"
-        ctx.fillText(`🎨 ${luckyItems?.color || "녹색"}  🔢 ${luckyItems?.number || 7}  🧭 ${luckyItems?.direction || "동쪽"}`, 540, 1450)
-
         ctx.font = "28px sans-serif"
-        ctx.fillStyle = "#AAAAAA"
-        ctx.fillText("PalmRead AI · 2025", 540, 1550)
+        ctx.fillText(`🎨 ${lucky?.color || "녹색"}  🔢 ${lucky?.number || 7}  🧭 ${lucky?.direction || "동쪽"}`, 540, 1400)
+
+        // Watermark
+        ctx.font = "26px sans-serif"
+        ctx.fillStyle = "#BBBBBB"
+        ctx.fillText("PalmRead AI · " + (yearInfo?.year || 2025), 540, 1620)
 
         setViralImage(canvas.toDataURL("image/png"))
         setShowViralCard(true)
@@ -96,23 +142,30 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
     return (
         <div className="relative min-h-full pb-32 bg-background text-foreground overflow-y-auto h-full scrollbar-hide">
 
-            {/* Header Image Area with Visualization */}
+            {/* Header Image Area */}
             <div className="relative w-full h-[45vh] bg-white rounded-b-[40px] shadow-sm overflow-hidden">
                 {showVisualization ? (
-                    <PalmVisualizer imageData={imageData} lines={lines} />
+                    <PalmVisualizer imageData={imageData} lines={linesArray} />
                 ) : (
                     <img src={imageData} className="w-full h-full object-cover opacity-80" alt="Hand" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-white/80 to-transparent pointer-events-none" />
 
-                {/* Toggle Visualization Button */}
+                {/* Toggle Button */}
                 <button
                     onClick={() => setShowVisualization(!showVisualization)}
                     className="absolute top-4 right-4 z-20 px-3 py-1.5 bg-white/90 backdrop-blur rounded-full text-xs font-medium flex items-center gap-1.5 shadow-md border border-surface-border"
                 >
                     <Eye className="w-3 h-3" />
-                    {showVisualization ? "원본 보기" : "분석 보기"}
+                    {showVisualization ? "원본" : "분석"}
                 </button>
+
+                {/* Year Badge */}
+                {yearInfo && (
+                    <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-primary/90 backdrop-blur rounded-full text-xs font-bold text-primary-foreground shadow-md">
+                        🐍 {yearInfo.zodiac}
+                    </div>
+                )}
 
                 {/* Character Badge */}
                 <motion.div
@@ -121,25 +174,22 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                     transition={{ delay: 2, duration: 0.8 }}
                     className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white px-8 py-6 rounded-[32px] shadow-xl flex flex-col items-center gap-2 w-[85%] border border-surface-border z-10"
                 >
-                    <span className="text-6xl mb-2">{character.emoji}</span>
-                    <div className="text-xs font-bold uppercase tracking-widest text-primary">Your Archetype</div>
-                    <h2 className="text-2xl font-bold text-foreground">{character.name}</h2>
-                    <p className="text-sm text-muted">{character.desc}</p>
-                    {/* Elements Badge */}
-                    {elements && (
-                        <div className="flex gap-2 mt-2">
-                            <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium">{elements.yinYang}</span>
-                            <span className="px-3 py-1 bg-primary/20 rounded-full text-xs font-bold text-primary-foreground">{elements.fiveElements}</span>
-                            {elements.zodiac && <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium">{elements.zodiac}</span>}
-                        </div>
-                    )}
+                    <span className="text-6xl mb-2">{userProfile.emoji}</span>
+                    <div className="text-xs font-bold uppercase tracking-widest text-primary">{userProfile.characterType}</div>
+                    <h2 className="text-2xl font-bold text-foreground">{userProfile.koreanTitle}</h2>
+                    <p className="text-sm text-muted text-center">{userProfile.desc}</p>
+                    <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                        {userProfile.keywords.map((k) => (
+                            <span key={k} className="px-2 py-0.5 bg-primary/10 rounded-full text-xs font-medium text-primary-foreground">{k}</span>
+                        ))}
+                    </div>
                 </motion.div>
             </div>
 
             {/* Content Area */}
             <div className="px-6 mt-8 space-y-6">
 
-                {/* Summary Card */}
+                {/* Summary */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -150,20 +200,47 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                             <Sparkles className="w-4 h-4 text-primary-foreground" />
                         </div>
-                        <h3 className="font-bold text-lg">AI 종합 분석</h3>
+                        <h3 className="font-bold text-lg">{yearInfo?.year || 2025}년 총운</h3>
                     </div>
                     <p className="text-muted leading-relaxed text-base">{summary}</p>
-
-                    <div className="flex flex-wrap gap-2 mt-4">
-                        {keywords.map((k) => (
-                            <span key={k} className="px-3 py-1 bg-background rounded-full text-sm text-foreground font-medium">
-                                {k}
-                            </span>
-                        ))}
-                    </div>
                 </motion.div>
 
-                {/* 2025 Fortune Cards */}
+                {/* 5-Year Timeline */}
+                {timeline && timeline.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 2.3 }}
+                        className="bg-white p-6 rounded-[24px] shadow-sm border border-surface-border"
+                    >
+                        <div className="flex items-center gap-2 mb-4">
+                            <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                            <h3 className="font-bold text-lg">5년 운세 그래프</h3>
+                        </div>
+                        <div className="flex items-end justify-between gap-2 h-32 mt-4">
+                            {timeline.map((item, i) => (
+                                <div key={item.year} className="flex-1 flex flex-col items-center gap-2">
+                                    <motion.div
+                                        className="w-full rounded-t-lg"
+                                        style={{
+                                            backgroundColor: item.score >= 80 ? "#B6E63A" : item.score >= 60 ? "#FFD93D" : "#FF6B6B",
+                                            height: `${item.score}%`
+                                        }}
+                                        initial={{ height: 0 }}
+                                        animate={{ height: `${item.score}%` }}
+                                        transition={{ duration: 0.8, delay: 2.5 + i * 0.1 }}
+                                    />
+                                    <div className="text-center">
+                                        <p className="text-xs font-bold">{item.year}</p>
+                                        <p className="text-[10px] text-muted truncate w-12">{item.event}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Fortune Cards */}
                 {fortune && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -171,10 +248,9 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                         transition={{ delay: 2.4 }}
                         className="space-y-4"
                     >
-                        <h3 className="font-bold text-lg px-1">🐍 2025년 을사년 운세</h3>
+                        <h3 className="font-bold text-lg px-1">🔮 {yearInfo?.year || 2025}년 운세</h3>
 
                         <div className="grid grid-cols-2 gap-3">
-                            {/* Love */}
                             <div className="bg-pink-50 p-4 rounded-[20px] border border-pink-100">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Heart className="w-4 h-4 text-pink-500" />
@@ -183,25 +259,22 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                                 <p className="text-xs text-pink-900/70 leading-relaxed">{fortune.love}</p>
                             </div>
 
-                            {/* Career */}
-                            <div className="bg-blue-50 p-4 rounded-[20px] border border-blue-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Briefcase className="w-4 h-4 text-blue-500" />
-                                    <span className="font-bold text-sm text-blue-700">직업운</span>
-                                </div>
-                                <p className="text-xs text-blue-900/70 leading-relaxed">{fortune.career}</p>
-                            </div>
-
-                            {/* Wealth */}
                             <div className="bg-yellow-50 p-4 rounded-[20px] border border-yellow-100">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Coins className="w-4 h-4 text-yellow-600" />
                                     <span className="font-bold text-sm text-yellow-700">재물운</span>
                                 </div>
-                                <p className="text-xs text-yellow-900/70 leading-relaxed">{fortune.wealth}</p>
+                                <p className="text-xs text-yellow-900/70 leading-relaxed">{fortune.money}</p>
                             </div>
 
-                            {/* Health */}
+                            <div className="bg-blue-50 p-4 rounded-[20px] border border-blue-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Briefcase className="w-4 h-4 text-blue-500" />
+                                    <span className="font-bold text-sm text-blue-700">직업운</span>
+                                </div>
+                                <p className="text-xs text-blue-900/70 leading-relaxed">{fortune.job}</p>
+                            </div>
+
                             <div className="bg-green-50 p-4 rounded-[20px] border border-green-100">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Activity className="w-4 h-4 text-green-500" />
@@ -214,7 +287,7 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                 )}
 
                 {/* Lucky Items */}
-                {luckyItems && (
+                {lucky && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -229,23 +302,28 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                             <div>
                                 <div className="text-2xl mb-1">🎨</div>
                                 <div className="text-xs text-muted">색상</div>
-                                <div className="font-bold text-sm">{luckyItems.color}</div>
+                                <div className="font-bold text-sm">{lucky.color}</div>
                             </div>
                             <div>
                                 <div className="text-2xl mb-1">🔢</div>
                                 <div className="text-xs text-muted">숫자</div>
-                                <div className="font-bold text-sm">{luckyItems.number}</div>
+                                <div className="font-bold text-sm">{lucky.number}</div>
+                            </div>
+                            <div>
+                                <div className="text-2xl mb-1">🎁</div>
+                                <div className="text-xs text-muted">아이템</div>
+                                <div className="font-bold text-sm">{lucky.item}</div>
                             </div>
                             <div>
                                 <div className="text-2xl mb-1">🧭</div>
                                 <div className="text-xs text-muted">방향</div>
-                                <div className="font-bold text-sm">{luckyItems.direction}</div>
+                                <div className="font-bold text-sm">{lucky.direction}</div>
                             </div>
                         </div>
                     </motion.div>
                 )}
 
-                {/* Line Analysis Card */}
+                {/* Line Analysis */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -253,7 +331,7 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                     className="bg-white p-6 rounded-[24px] shadow-sm border border-surface-border space-y-5"
                 >
                     <h3 className="font-bold text-lg">손금 라인 분석</h3>
-                    {lines.map((line) => (
+                    {linesArray.map((line) => (
                         <div key={line.name} className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
@@ -276,33 +354,18 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                     ))}
                 </motion.div>
 
-                {/* Advice Card */}
-                {advice && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 2.8 }}
-                        className="bg-primary/10 p-5 rounded-[24px] border border-primary/20"
-                    >
-                        <p className="text-foreground text-sm font-medium text-center">💡 {advice}</p>
-                    </motion.div>
-                )}
-
                 {/* Paid Teaser */}
                 <div className="relative overflow-hidden rounded-[24px] bg-white border border-surface-border shadow-sm">
                     <div className="p-6 filter blur-[4px] opacity-40 select-none">
-                        <h3 className="font-bold text-lg mb-2">상세 월별 운세 가이드</h3>
-                        <p className="text-sm text-muted">매달 당신만을 위한 맞춤 조언을...</p>
+                        <h3 className="font-bold text-lg mb-2">상세 월별 운세</h3>
+                        <p className="text-sm text-muted">매달 맞춤 조언...</p>
                         <div className="mt-4 h-20 bg-gray-100 rounded-xl"></div>
                     </div>
-
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px]">
                         <Lock className="w-6 h-6 text-foreground mb-3" />
-                        <p className="font-bold mb-4 text-sm text-center px-4 text-foreground">
-                            더 깊은 분석이 필요하신가요?
-                        </p>
+                        <p className="font-bold mb-4 text-sm text-center px-4 text-foreground">프리미엄 분석 잠금해제</p>
                         <button className="px-6 py-3 bg-foreground text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform flex items-center gap-2 text-sm">
-                            전체 리포트 잠금해제 <ArrowRight className="w-4 h-4" />
+                            상세 리포트 보기 <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -318,7 +381,7 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                 </div>
             </div>
 
-            {/* Floating Action Button */}
+            {/* Floating Share Button */}
             <div className="fixed bottom-8 left-0 w-full px-6 flex justify-center z-50">
                 <button
                     onClick={generateViralCard}
@@ -339,7 +402,7 @@ export default function ResultView({ imageData, result }: ResultViewProps) {
                     <div className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden shadow-2xl">
                         <div className="p-4 flex justify-between items-center border-b border-gray-100">
                             <h3 className="font-bold text-foreground">공유하기</h3>
-                            <button onClick={() => setShowViralCard(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">✕</button>
+                            <button onClick={() => setShowViralCard(false)} className="p-2 hover:bg-gray-100 rounded-full">✕</button>
                         </div>
                         <div className="p-6 bg-background flex justify-center">
                             <img src={viralImage} className="h-[50vh] rounded-2xl shadow-lg border border-white" alt="Viral Card" />

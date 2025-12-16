@@ -10,40 +10,46 @@ import { optimizeImage } from "@/lib/imageUtils"
 
 type ViewState = "onboarding" | "birth" | "camera" | "analyzing" | "result"
 
-// Result type from API (with coordinates and fortune)
+// New Result type from API
 export interface PalmReadingResult {
-  character: {
-    name: string
-    title: string
+  userProfile: {
+    characterType: string
+    koreanTitle: string
     emoji: string
     desc: string
+    keywords: string[]
   }
-  keywords: string[]
   summary: string
   lines: {
-    name: string
-    koreanName: string
-    score: number
-    color: string
-    coordinates: [number, number][]
-    meaning: string
-  }[]
-  elements: {
-    yinYang: string
-    fiveElements: string
-    zodiac?: string
+    [key: string]: {
+      exists: boolean
+      score: number
+      color: string
+      coordinates: [number, number][]
+      meaning: string
+    }
   }
   fortune: {
     love: string
-    career: string
-    wealth: string
+    money: string
+    job: string
     health: string
   }
-  advice: string
-  luckyItems: {
+  timeline: {
+    year: number
+    score: number
+    event: string
+  }[]
+  lucky: {
     color: string
     number: number
+    item: string
     direction: string
+  }
+  yearInfo: {
+    year: number
+    zodiac: string
+    animal: string
   }
 }
 
@@ -73,7 +79,6 @@ export default function Home() {
     animationCompleteRef.current = false
 
     try {
-      // Optimize image before API call
       const optimizedImage = await optimizeImage(data)
 
       const response = await fetch("/api/analyze", {
@@ -81,7 +86,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageData: optimizedImage,
-          birthYear: birthYear // Pass birth year to API
+          birthYear: birthYear
         }),
       })
 
@@ -94,25 +99,33 @@ export default function Home() {
       setAnalysisResult(result)
     } catch (err: any) {
       console.error("Analysis Error:", err)
-      // Fallback mock data
+      // Fallback mock data with new schema
+      const currentYear = new Date().getFullYear()
       setAnalysisResult({
-        character: {
-          name: "Mystic Dreamer",
-          title: "신비로운 몽상가",
+        userProfile: {
+          characterType: "Mystic Dreamer",
+          koreanTitle: "신비로운 몽상가",
           emoji: "🌙",
-          desc: "창의적 영혼",
+          desc: "창의적이고 직관적인 영혼의 소유자입니다.",
+          keywords: ["#직감력", "#예술적감각", "#깊은생각"]
         },
-        keywords: ["#직감력", "#예술적감각", "#깊은생각"],
         summary: "API 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-        lines: [
-          { name: "lifeLine", koreanName: "생명선", score: 80, color: "#FF6B6B", coordinates: [[0.3, 0.4], [0.35, 0.55], [0.38, 0.7], [0.4, 0.85]], meaning: "생명력이 강합니다" },
-          { name: "headLine", koreanName: "지능선", score: 85, color: "#4ECDC4", coordinates: [[0.25, 0.45], [0.4, 0.48], [0.55, 0.5], [0.7, 0.48]], meaning: "분석적 사고력" },
-          { name: "heartLine", koreanName: "감정선", score: 78, color: "#F472B6", coordinates: [[0.2, 0.3], [0.4, 0.33], [0.6, 0.35], [0.8, 0.38]], meaning: "풍부한 감수성" },
+        lines: {
+          lifeLine: { exists: true, score: 80, color: "#FF6B6B", coordinates: [[0.3, 0.4], [0.35, 0.55], [0.38, 0.7], [0.4, 0.85]], meaning: "생명력이 강합니다" },
+          headLine: { exists: true, score: 85, color: "#4ECDC4", coordinates: [[0.25, 0.45], [0.4, 0.48], [0.55, 0.5], [0.7, 0.48]], meaning: "분석적 사고력" },
+          heartLine: { exists: true, score: 78, color: "#F472B6", coordinates: [[0.2, 0.3], [0.4, 0.33], [0.6, 0.35], [0.8, 0.38]], meaning: "풍부한 감수성" },
+          fateLine: { exists: true, score: 75, color: "#B6E63A", coordinates: [[0.5, 0.9], [0.5, 0.7], [0.48, 0.5]], meaning: "재물운 양호" }
+        },
+        fortune: { love: "좋은 인연을 기대하세요.", money: "안정적입니다.", job: "기회가 열립니다.", health: "꾸준한 관리 필요." },
+        timeline: [
+          { year: currentYear, score: 75, event: "준비의 해" },
+          { year: currentYear + 1, score: 80, event: "도약의 시작" },
+          { year: currentYear + 2, score: 85, event: "성장 가속" },
+          { year: currentYear + 3, score: 70, event: "잠시 휴식" },
+          { year: currentYear + 4, score: 90, event: "황금기" }
         ],
-        elements: { yinYang: "양", fiveElements: "水" },
-        fortune: { love: "곧 좋은 인연이 찾아올 것입니다.", career: "새로운 기회가 열릴 수 있습니다.", wealth: "안정적인 재정을 유지할 수 있습니다.", health: "꾸준한 관리가 필요합니다." },
-        advice: "잠시 후 다시 시도해 주세요.",
-        luckyItems: { color: "녹색", number: 7, direction: "동쪽" },
+        lucky: { color: "녹색", number: 7, item: "식물", direction: "동쪽" },
+        yearInfo: { year: currentYear, zodiac: "갑진년", animal: "푸른 용" }
       })
     } finally {
       apiCompleteRef.current = true
