@@ -1,0 +1,71 @@
+/* Animations */
+
+/* Shredder Animation */
+@keyframes shred {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    20% {
+        transform: translateY(20px);
+    }
+
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+        filter: blur(2px);
+    }
+}
+
+.animate-shred {
+    animation: shred 1.2s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+}
+
+/* Scan Line Animation */
+@keyframes scan {
+    0% {
+        top: 0%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #4ECDC4, transparent);
+    box-shadow: 0 0 10px #4ECDC4;
+    animation: scan 2s linear infinite;
+}
+
+/* Terminal Typing Cursor */
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.cursor-blink::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+}

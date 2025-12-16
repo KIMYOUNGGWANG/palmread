@@ -1,0 +1,42 @@
+/* Global Styles */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* View Transitions */
+.view-section {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.view-enter {
+    opacity: 0;
+    transform: scale(0.98);
+}
+
+.view-enter-active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.view-exit {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.view-exit-active {
+    opacity: 0;
+    transform: scale(1.02);
+    pointer-events: none;
+}

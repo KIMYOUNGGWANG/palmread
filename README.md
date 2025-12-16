@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PalmRead - AI Palm Reading Wellness App
 
-## Getting Started
+AI 기반 손금 분석 웰니스 서비스
 
-First, run the development server:
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔑 Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Vercel 또는 `.env.local`에 다음 환경변수를 설정하세요:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+OPENAI_API_KEY=sk-proj-your-api-key-here
+```
 
-## Learn More
+## 📱 Features
 
-To learn more about Next.js, take a look at the following resources:
+- ✅ GPT-4o Vision 기반 손금 분석
+- ✅ 좌표 기반 손금 라인 시각화
+- ✅ 밝기 품질 검증
+- ✅ 16가지 손금 캐릭터 타입
+- ✅ 바이럴 공유 카드 생성
+- ✅ 모바일 반응형
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎨 Design
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Theme**: Wellness (Light Gray + Lime Green)
+- **Colors**: 
+  - Background: `#E6E7E3`
+  - Accent: `#B6E63A`
+  - Text: `#1A1A1A` / `#5F5F5F`
 
-## Deploy on Vercel
+## 📦 Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Next.js 16 (App Router)
+- React 19
+- Tailwind CSS v4
+- Framer Motion
+- OpenAI API
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🌐 Deployment (Vercel)
+
+1. Push to GitHub
+2. Import to Vercel
+3. Add `OPENAI_API_KEY` environment variable
+4. Deploy!
+
+## 📄 License
+
+Private
