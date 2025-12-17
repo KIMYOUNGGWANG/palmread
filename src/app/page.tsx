@@ -143,18 +143,22 @@ export default function Home() {
 
   return (
     <main className="relative w-full h-screen bg-background text-foreground overflow-hidden max-w-md mx-auto shadow-2xl">
-      <header className="absolute top-0 left-0 w-full z-50 p-4 flex justify-between items-center">
-        {/* Language Toggle */}
-        <button
-          onClick={() => setLang(lang === "ko" ? "en" : "ko")}
-          className="text-xs bg-white/90 backdrop-blur px-3 py-1.5 rounded-full border border-surface-border flex items-center gap-1.5 shadow-sm hover:bg-white transition-colors"
-        >
-          {lang === "ko" ? "🇰🇷 한국어" : "🇺🇸 English"}
-        </button>
+      <header className="absolute top-0 left-0 w-full z-50 p-3 flex justify-between items-center">
+        {/* Language Toggle - hide on result view */}
+        {view !== "result" ? (
+          <button
+            onClick={() => setLang(lang === "ko" ? "en" : "ko")}
+            className="text-xs bg-white/90 backdrop-blur px-2.5 py-1 rounded-full border border-surface-border flex items-center gap-1 shadow-sm hover:bg-white transition-colors"
+          >
+            {lang === "ko" ? "🇰🇷" : "🇺🇸"}
+          </button>
+        ) : (
+          <div /> /* Placeholder for flex spacing */
+        )}
 
         {view !== "onboarding" && view !== "birth" && (
-          <div className="text-xs bg-white/80 backdrop-blur px-3 py-1 rounded-full border border-surface-border flex items-center gap-1 animate-in fade-in text-muted shadow-sm">
-            <span>🔒</span> Privacy First
+          <div className="text-[10px] bg-white/80 backdrop-blur px-2 py-1 rounded-full border border-surface-border flex items-center gap-1 text-muted shadow-sm">
+            <span>🔒</span> Privacy
           </div>
         )}
       </header>
